@@ -18,6 +18,8 @@ export { KNOWLEDGE_TOOLS } from "./tools/knowledge";
 export { COMMUNICATION_TOOLS } from "./tools/communication";
 export { ADMIN_TOOLS } from "./tools/admin";
 export { APPS_TOOLS } from "./tools/apps";
+export { VOICE_TOOLS } from "./tools/voice";
+export { resumeSession, guardResponse, fallbackResponse, detectHallucination } from "./resilience";
 
 // Client-side (kept from scaffold)
 export { parseSSEStream } from "./stream-parser";

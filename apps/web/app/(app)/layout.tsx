@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "../../lib/supabase/server";
+import { Sidebar } from "./components/Sidebar";
 
 export default async function AppLayout({
   children,
@@ -13,5 +14,12 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="h-dvh w-full flex overflow-hidden bg-background">
+      <Sidebar />
+      <main className="flex-1 min-w-0 overflow-hidden">
+        {children}
+      </main>
+    </div>
+  );
 }

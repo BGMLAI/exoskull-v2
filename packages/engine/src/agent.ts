@@ -21,6 +21,7 @@ import { getAllTools } from "./tools";
 import { MAX_TOOL_RESULT_LENGTH } from "./tools/types";
 import { analyzeEmotion, detectCrisis } from "./emotion";
 import { runReflexion } from "./reflexion";
+import { guardResponse, fallbackResponse } from "./resilience";
 
 // ── Configuration ───────────────────────────────────────────────────────────
 // Subscription-based pricing: no per-token cost optimization needed.
@@ -252,7 +253,8 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
       finalText = finalText || "Request timed out.";
     } else {
       console.error("[Agent] API error:", errMsg);
-      finalText = "Processing error. Please try again.";
+      // Emergency fallback: use Gemini Flash if Claude fails
+      finalText = await fallbackResponse(req.userMessage, systemPrompt);
     }
     eventStore.emit("error", { error: errMsg });
   } finally {
@@ -276,7 +278,7 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
 
   const durationMs = Date.now() - startMs;
 
-  const response: AgentResponse = {
+  let response: AgentResponse = {
     text: finalText,
     toolsUsed,
     events: eventStore.getBuffer(),
@@ -285,7 +287,10 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
     durationMs,
   };
 
-  // Phase 5: Reflexion (async, non-blocking — subscription = no cost concern)
+  // Phase 5: Anti-hallucination guard
+  response = guardResponse(response);
+
+  // Phase 6: Reflexion (async, non-blocking — subscription = no cost concern)
   runReflexion(req.tenantId, req.userMessage, response).catch((err) => {
     console.error("[Agent] Reflexion failed (non-blocking):", err);
   });

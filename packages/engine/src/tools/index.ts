@@ -4,12 +4,14 @@ import { KNOWLEDGE_TOOLS } from "./knowledge";
 import { COMMUNICATION_TOOLS } from "./communication";
 import { ADMIN_TOOLS } from "./admin";
 import { APPS_TOOLS } from "./apps";
+import { VOICE_TOOLS } from "./voice";
 
 export { CORE_TOOLS } from "./core";
 export { KNOWLEDGE_TOOLS } from "./knowledge";
 export { COMMUNICATION_TOOLS } from "./communication";
 export { ADMIN_TOOLS } from "./admin";
 export { APPS_TOOLS } from "./apps";
+export { VOICE_TOOLS } from "./voice";
 
 /**
  * Three-tier tool loading:
@@ -24,6 +26,7 @@ export function getAllTools(): ToolDefinition[] {
     ...COMMUNICATION_TOOLS,
     ...ADMIN_TOOLS,
     ...APPS_TOOLS,
+    ...VOICE_TOOLS,
   ];
 }
 
