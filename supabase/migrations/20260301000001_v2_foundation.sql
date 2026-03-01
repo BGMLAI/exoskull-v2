@@ -22,17 +22,26 @@ CREATE TABLE IF NOT EXISTS tenants (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_tenants_auth ON tenants(auth_id);
-CREATE INDEX idx_tenants_email ON tenants(email);
+CREATE INDEX IF NOT EXISTS idx_tenants_auth ON tenants(auth_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_email ON tenants(email);
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own tenant" ON tenants
-  FOR SELECT USING (auth_id = auth.uid());
-CREATE POLICY "Users update own tenant" ON tenants
-  FOR UPDATE USING (auth_id = auth.uid()) WITH CHECK (auth_id = auth.uid());
-CREATE POLICY "Service role full access tenants" ON tenants
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own tenant" ON tenants
+    FOR SELECT USING (auth_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Users update own tenant" ON tenants
+    FOR UPDATE USING (auth_id = auth.uid()) WITH CHECK (auth_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access tenants" ON tenants
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- 2. EVENTS — append-only event log (event-sourced state)
@@ -52,16 +61,22 @@ CREATE TABLE IF NOT EXISTS events (
   UNIQUE(session_id, seq)
 );
 
-CREATE INDEX idx_events_tenant_session ON events(tenant_id, session_id, seq);
-CREATE INDEX idx_events_tenant_time ON events(tenant_id, created_at DESC);
-CREATE INDEX idx_events_kind ON events(kind, created_at);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_session ON events(tenant_id, session_id, seq);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_time ON events(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind, created_at);
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own events" ON events
-  FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Service role full access events" ON events
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own events" ON events
+    FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access events" ON events
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- 3. MEMORY — unified memory (facts, episodes, notes, entities, summaries)
@@ -80,17 +95,23 @@ CREATE TABLE IF NOT EXISTS memory (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_memory_tenant_kind ON memory(tenant_id, kind);
-CREATE INDEX idx_memory_importance ON memory(tenant_id, importance DESC);
-CREATE INDEX idx_memory_embedding ON memory USING hnsw (embedding vector_cosine_ops)
+CREATE INDEX IF NOT EXISTS idx_memory_tenant_kind ON memory(tenant_id, kind);
+CREATE INDEX IF NOT EXISTS idx_memory_importance ON memory(tenant_id, importance DESC);
+CREATE INDEX IF NOT EXISTS idx_memory_embedding ON memory USING hnsw (embedding vector_cosine_ops)
   WITH (m = 16, ef_construction = 64);
 
 ALTER TABLE memory ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own memory" ON memory
-  FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Service role full access memory" ON memory
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own memory" ON memory
+    FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access memory" ON memory
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Vector search function
 CREATE OR REPLACE FUNCTION search_memory(
@@ -135,19 +156,28 @@ CREATE TABLE IF NOT EXISTS goals (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_goals_tenant_status ON goals(tenant_id, status);
-CREATE INDEX idx_goals_parent ON goals(parent_id);
-CREATE INDEX idx_goals_tenant_depth ON goals(tenant_id, depth, priority DESC);
+CREATE INDEX IF NOT EXISTS idx_goals_tenant_status ON goals(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_goals_parent ON goals(parent_id);
+CREATE INDEX IF NOT EXISTS idx_goals_tenant_depth ON goals(tenant_id, depth, priority DESC);
 
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own goals" ON goals
-  FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Users mutate own goals" ON goals
-  FOR ALL USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()))
-  WITH CHECK (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Service role full access goals" ON goals
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own goals" ON goals
+    FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Users mutate own goals" ON goals
+    FOR ALL USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()))
+    WITH CHECK (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access goals" ON goals
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- 5. TOOLS — dynamic tool registry
@@ -168,18 +198,24 @@ CREATE TABLE IF NOT EXISTS tools (
   UNIQUE(tenant_id, slug)
 );
 
-CREATE INDEX idx_tools_tenant_enabled ON tools(tenant_id, enabled);
-CREATE INDEX idx_tools_slug ON tools(slug);
+CREATE INDEX IF NOT EXISTS idx_tools_tenant_enabled ON tools(tenant_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_tools_slug ON tools(slug);
 
 ALTER TABLE tools ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own tools" ON tools
-  FOR SELECT USING (
-    tenant_id IS NULL OR
-    tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid())
-  );
-CREATE POLICY "Service role full access tools" ON tools
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own tools" ON tools
+    FOR SELECT USING (
+      tenant_id IS NULL OR
+      tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access tools" ON tools
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- 6. QUEUE — unified work queue (replaces 43 CRONs)
@@ -201,15 +237,18 @@ CREATE TABLE IF NOT EXISTS queue (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_queue_claimable ON queue(tenant_id, status, priority DESC, scheduled_for)
+CREATE INDEX IF NOT EXISTS idx_queue_claimable ON queue(tenant_id, status, priority DESC, scheduled_for)
   WHERE status = 'pending';
-CREATE INDEX idx_queue_tenant_status ON queue(tenant_id, status);
-CREATE INDEX idx_queue_scheduled ON queue(scheduled_for) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_queue_tenant_status ON queue(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_queue_scheduled ON queue(scheduled_for) WHERE status = 'pending';
 
 ALTER TABLE queue ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Service role full access queue" ON queue
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Service role full access queue" ON queue
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Atomic claim function — FOR UPDATE SKIP LOCKED prevents race conditions
 CREATE OR REPLACE FUNCTION claim_queue_item(p_kinds TEXT[] DEFAULT NULL)
@@ -248,14 +287,20 @@ CREATE TABLE IF NOT EXISTS connections (
   UNIQUE(tenant_id, provider)
 );
 
-CREATE INDEX idx_connections_tenant ON connections(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_connections_tenant ON connections(tenant_id);
 
 ALTER TABLE connections ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own connections" ON connections
-  FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Service role full access connections" ON connections
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own connections" ON connections
+    FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access connections" ON connections
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- 8. BLOBS — file storage metadata
@@ -274,14 +319,20 @@ CREATE TABLE IF NOT EXISTS blobs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_blobs_tenant_kind ON blobs(tenant_id, kind);
+CREATE INDEX IF NOT EXISTS idx_blobs_tenant_kind ON blobs(tenant_id, kind);
 
 ALTER TABLE blobs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users read own blobs" ON blobs
-  FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
-CREATE POLICY "Service role full access blobs" ON blobs
-  FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Users read own blobs" ON blobs
+    FOR SELECT USING (tenant_id IN (SELECT id FROM tenants WHERE auth_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY "Service role full access blobs" ON blobs
+    FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- HELPER: Auto-update updated_at trigger
@@ -294,8 +345,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tenants_updated_at ON tenants;
 CREATE TRIGGER tenants_updated_at BEFORE UPDATE ON tenants
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS goals_updated_at ON goals;
 CREATE TRIGGER goals_updated_at BEFORE UPDATE ON goals
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
