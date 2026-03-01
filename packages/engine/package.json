@@ -8,7 +8,10 @@
     ".": "./src/index.ts",
     "./agent": "./src/agent.ts",
     "./tools": "./src/tools/index.ts",
-    "./gateway": "./src/gateway/index.ts"
+    "./gateway": "./src/gateway/index.ts",
+    "./gateway/adapters/telegram": "./src/gateway/adapters/telegram.ts",
+    "./lane-queue": "./src/lane-queue.ts",
+    "./heartbeat": "./src/heartbeat.ts"
   },
   "dependencies": {
     "@exoskull/types": "*",

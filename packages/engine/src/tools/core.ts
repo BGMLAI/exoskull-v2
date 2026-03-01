@@ -199,7 +199,7 @@ export const completeTaskTool: ToolDefinition = {
 
 export const searchBrain: ToolDefinition = {
   name: "search_brain",
-  description: "Search the user's memory/knowledge base. Returns relevant facts, episodes, notes, documents.",
+  description: "Search the user's memory/knowledge base. Uses semantic vector search when available, with keyword fallback.",
   input_schema: {
     type: "object",
     properties: {
@@ -209,9 +209,23 @@ export const searchBrain: ToolDefinition = {
   },
   tier: "core",
   async execute(input: Record<string, unknown>, tenantId: string): Promise<string> {
-    const { searchMemoryKeyword } = await import("@exoskull/store");
-    const results = await searchMemoryKeyword(tenantId, input.query as string, 10);
+    const query = input.query as string;
+    const { searchMemoryVector, searchMemoryKeyword } = await import("@exoskull/store");
+    const { tryEmbed } = await import("../embeddings");
 
+    // Try vector search first
+    const embedding = await tryEmbed(query);
+    if (embedding) {
+      const vectorResults = await searchMemoryVector(tenantId, embedding, 10, 0.3);
+      if (vectorResults.length > 0) {
+        return vectorResults
+          .map((r, i) => `[${i + 1}] (${r.kind}, score: ${r.similarity.toFixed(2)}) ${r.content.slice(0, 500)}`)
+          .join("\n\n");
+      }
+    }
+
+    // Keyword fallback
+    const results = await searchMemoryKeyword(tenantId, query, 10);
     if (results.length === 0) return "No matching memories found.";
 
     return results
@@ -235,18 +249,23 @@ export const remember: ToolDefinition = {
   tier: "core",
   async execute(input: Record<string, unknown>, tenantId: string): Promise<string> {
     const { insertMemory } = await import("@exoskull/store");
+    const { tryEmbed } = await import("../embeddings");
+
+    const content = input.content as string;
+    const embedding = await tryEmbed(content);
+
     const memory = await insertMemory({
       tenant_id: tenantId,
       kind: (input.kind as "fact" | "note" | "entity" | "episode") || "fact",
-      content: input.content as string,
-      embedding: null,
+      content,
+      embedding,
       importance: (input.importance as number) ?? 0.5,
       source: { origin: "agent_remember" },
       metadata: {},
       expires_at: null,
     });
 
-    return JSON.stringify({ success: true, memory_id: memory.id });
+    return JSON.stringify({ success: true, memory_id: memory.id, embedded: !!embedding });
   },
 };
 
