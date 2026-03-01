@@ -21,9 +21,9 @@ interface VoiceModeProps {
 }
 
 // ── Silence detection config ────────────────────────────────────
-const SILENCE_THRESHOLD = 0.01;
-const SILENCE_DURATION_MS = 1500; // 1.5s silence = stop recording
-const MIN_RECORDING_MS = 500;
+const SILENCE_THRESHOLD = 0.02; // Higher = less sensitive to background noise
+const SILENCE_DURATION_MS = 2000; // 2s silence = stop recording (was 1.5s — too fast)
+const MIN_RECORDING_MS = 1000; // Minimum 1s recording (was 500ms — too short)
 
 export function VoiceMode({
   onSend,
@@ -118,7 +118,8 @@ export function VoiceMode({
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 16000,
+          channelCount: 1,
+          sampleRate: { ideal: 16000 },
         },
       });
       streamRef.current = stream;

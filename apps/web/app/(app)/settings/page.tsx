@@ -21,6 +21,7 @@ const AUTONOMY_PERMISSIONS = [
   { key: "build_app", label: "Build Apps", description: "Create and deploy applications" },
   { key: "connect_integration", label: "Connect Services", description: "Link external services (Google, Notion, etc.)" },
   { key: "spend_money", label: "Spend Money", description: "Make purchases or payments" },
+  { key: "self_modify", label: "Self-Modify", description: "Modify own dashboard, add pages, change UI — pushes code to GitHub" },
 ];
 
 const TIMEZONES = [

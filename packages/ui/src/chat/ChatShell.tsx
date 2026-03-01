@@ -10,16 +10,19 @@ import { cn } from "../common/utils";
 interface ChatShellProps {
   engine: UseChatEngineReturn;
   className?: string;
+  uploadUrl?: string;
 }
 
 /**
- * ChatShell — complete chat interface with voice mode.
- * MessageList (scrollable) + InputBar (bottom) + VoiceMode (overlay).
+ * ChatShell — complete chat interface with voice mode + file upload.
  */
-export function ChatShell({ engine, className }: ChatShellProps) {
+export function ChatShell({
+  engine,
+  className,
+  uploadUrl = "/api/upload",
+}: ChatShellProps) {
   const [voiceModeOpen, setVoiceModeOpen] = useState(false);
 
-  // Get last assistant message for TTS
   const lastAssistantMsg = [...engine.messages]
     .reverse()
     .find((m) => m.role === "assistant");
@@ -28,16 +31,41 @@ export function ChatShell({ engine, className }: ChatShellProps) {
     setVoiceModeOpen(false);
   }, []);
 
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+
+      try {
+        const res = await fetch(uploadUrl, { method: "POST", body: form });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Upload failed" }));
+          engine.sendMessage(
+            `[Nie udalo sie wgrac pliku: ${err.error || "blad"}]`,
+          );
+          return;
+        }
+
+        const data = await res.json();
+        // Tell the agent about the uploaded file
+        engine.sendMessage(
+          `Wgralem plik "${data.filename}" (${formatBytes(data.size)}, ${data.extracted_chars} znakow tekstu). Przeanalizuj go.`,
+        );
+      } catch {
+        engine.sendMessage("[Blad wgrywania pliku]");
+      }
+    },
+    [uploadUrl, engine],
+  );
+
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Error banner */}
       {engine.error && (
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-xs border-b border-destructive/20">
           {engine.error}
         </div>
       )}
 
-      {/* Messages */}
       <div className="flex-1 min-h-0">
         <MessageList
           messages={engine.messages}
@@ -46,17 +74,16 @@ export function ChatShell({ engine, className }: ChatShellProps) {
         />
       </div>
 
-      {/* Input */}
       <div className="shrink-0 p-4 pt-0">
         <InputBar
           onSend={(msg) => engine.sendMessage(msg)}
+          onFileUpload={handleFileUpload}
           isStreaming={engine.isStreaming}
           onCancel={engine.cancelStream}
           onVoiceMode={() => setVoiceModeOpen(true)}
         />
       </div>
 
-      {/* Voice mode overlay */}
       {voiceModeOpen && (
         <VoiceMode
           onSend={(msg) => engine.sendMessage(msg)}
@@ -67,4 +94,10 @@ export function ChatShell({ engine, className }: ChatShellProps) {
       )}
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

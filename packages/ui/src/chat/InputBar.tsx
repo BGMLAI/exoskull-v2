@@ -5,6 +5,7 @@ import { cn } from "../common/utils";
 
 interface InputBarProps {
   onSend: (message: string) => void;
+  onFileUpload?: (file: File) => Promise<void>;
   isStreaming: boolean;
   onCancel?: () => void;
   onVoiceMode?: () => void;
@@ -14,6 +15,7 @@ interface InputBarProps {
 
 export function InputBar({
   onSend,
+  onFileUpload,
   isStreaming,
   onCancel,
   onVoiceMode,
@@ -21,7 +23,9 @@ export function InputBar({
   className,
 }: InputBarProps) {
   const [input, setInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -60,14 +64,54 @@ export function InputBar({
     [handleSubmit, input],
   );
 
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !onFileUpload) return;
+      setIsUploading(true);
+      try {
+        await onFileUpload(file);
+      } finally {
+        setIsUploading(false);
+        // Reset input so same file can be re-selected
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [onFileUpload],
+  );
+
   return (
     <div
       className={cn(
-        "flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-lg backdrop-blur-xl",
+        "flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-lg backdrop-blur-xl",
         className,
       )}
     >
-      {/* Voice mode button */}
+      {/* File upload */}
+      {onFileUpload && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isStreaming || isUploading}
+            className={cn(
+              "shrink-0 rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
+              (isStreaming || isUploading) && "opacity-30 cursor-not-allowed",
+            )}
+            title="Wgraj plik"
+          >
+            {isUploading ? <SpinnerIcon /> : <PaperclipIcon />}
+          </button>
+        </>
+      )}
+
+      {/* Voice mode */}
       {onVoiceMode && (
         <button
           onClick={onVoiceMode}
@@ -78,11 +122,7 @@ export function InputBar({
           )}
           title="Tryb glosowy"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <line x1="12" x2="12" y1="19" y2="22" />
-          </svg>
+          <MicIcon />
         </button>
       )}
 
@@ -114,5 +154,33 @@ export function InputBar({
         </button>
       )}
     </div>
+  );
+}
+
+// ── Icons ─────────────────────────────────────────────────────
+
+function MicIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" x2="12" y1="19" y2="22" />
+    </svg>
+  );
+}
+
+function PaperclipIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   );
 }

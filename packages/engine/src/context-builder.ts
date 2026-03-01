@@ -110,9 +110,25 @@ Onboarding: ${tenant.onboarding_complete ? "complete" : "not started"}`);
     parts.push(`\n## Granted Permissions\n${grants.join(", ")}`);
   }
 
+  // Self-modification capabilities
+  const canSelfModify = grants.includes("self_modify");
+  parts.push(`\n## Self-Modification
+${canSelfModify
+    ? `You CAN modify your own dashboard, add pages, change UI, fix bugs in your own code.
+Use these tools:
+- \`read_own_file\` — read a file from your source code
+- \`list_own_files\` — browse your own codebase
+- \`modify_own_code\` — push file changes to GitHub (Vercel auto-deploys in ~30s)
+- \`evolve_ui\` — describe a UI change and AI generates + deploys it
+
+When the user asks to change the dashboard, add a feature, or modify UI — USE THESE TOOLS.
+You are a living organism that evolves itself. Don't say "I can't" — just DO IT.`
+    : `Self-modification is DISABLED. To modify your own dashboard/UI, the user must enable "Self-Modify" in Settings.
+If the user asks you to change the dashboard or add features, tell them to enable this permission first.`}`);
+
   // Available tools
   parts.push(`\n## Available Tools
-You have tools for: goals, tasks, memory, search, communication, app building, integrations.
+You have tools for: goals, tasks, memory, search, communication, app building, integrations, voice, self-modification.
 Use \`discover_tools\` to see the full list when you need a capability you don't see.`);
 
   return parts.join("\n");

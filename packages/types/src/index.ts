@@ -37,6 +37,7 @@ export interface AutonomyGrants {
   build_app?: boolean;
   connect_integration?: boolean;
   spend_money?: boolean;
+  self_modify?: boolean;
   [key: string]: boolean | undefined;
 }
 
