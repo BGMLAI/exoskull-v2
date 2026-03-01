@@ -18,7 +18,7 @@ apps/web/              — Next.js 15 web app
 apps/desktop/          — Tauri v2 desktop app (Phase 4)
 packages/types/        — All shared TypeScript interfaces (~300 LOC)
 packages/store/        — Supabase CRUD for 8 tables (~700 LOC)
-packages/engine/       — Agent brain: ReAct loop, tools, gateway (~1500 LOC)
+packages/engine/       — Agent brain: ReAct loop, 28 tools, gateway, heartbeat (~5500 LOC)
 packages/ui/           — Shared React components (chat, code)
 services/vps-executor/ — VPS code execution sandbox
 supabase/migrations/   — 8 tables: tenants, events, memory, goals, tools, queue, connections, blobs
@@ -61,11 +61,16 @@ cd apps/web && npx next build
 5. **SOUL + MEMORY** — 2 pre-computed text blobs replace 15 DB queries
 6. **ReAct loop** — Reason → Act → Observe, with parallel tool execution
 7. **Single queue** — one CRON route, priority-based processing
-8. **~23k LOC target** — currently ~3.5k LOC (Phase 1)
+8. **~23k LOC target** — currently ~6.9k LOC (Phase 1-3)
 
-## Agent Tools (Phase 1 — 8 core)
+## Agent Tools (28 total: 8 core + 20 pack)
 
-define_goal, check_goals, log_goal_progress, add_task, list_tasks, complete_task, search_brain, remember
+**Core (8):** define_goal, check_goals, log_goal_progress, add_task, list_tasks, complete_task, search_brain, remember
+**Knowledge (2):** search_web, import_url
+**Communication (2):** send_sms, send_email
+**Admin (6):** request_autonomy, list_integrations, discover_tools, plan_action, log_data, get_data
+**Apps (6):** create_app_spec, scaffold_app, write_code, run_tests, deploy_app, build_tool
+**Dynamic:** +N via build_tool (self-extending agent)
 
 ## Stack
 
@@ -81,6 +86,6 @@ define_goal, check_goals, log_goal_progress, add_task, list_tasks, complete_task
 ## Implementation Phases
 
 - [x] Phase 1: Goal → Strategy → Tasks (closed loop) — DB, store, engine, auth, SSE
-- [ ] Phase 2: Memory + Tools + App Builder (BMAD pipeline, self-extending agent)
-- [ ] Phase 3: Heartbeat + Multi-Channel (Telegram, queue worker)
-- [ ] Phase 4: Polish + Desktop + Outbound Calling
+- [x] Phase 2: Memory + Tools + App Builder — SOUL/MEMORY, emotion, reflexion, 28 tools, BMAD, self-extending
+- [x] Phase 3: Heartbeat + Multi-Channel — queue worker, Telegram webhook, lane queue, vector search
+- [ ] Phase 4: Polish + Desktop + Outbound Calling + Web UI (goals page, settings)
