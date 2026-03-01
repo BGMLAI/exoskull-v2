@@ -17,6 +17,7 @@ export { CORE_TOOLS } from "./tools/core";
 export { KNOWLEDGE_TOOLS } from "./tools/knowledge";
 export { COMMUNICATION_TOOLS } from "./tools/communication";
 export { ADMIN_TOOLS } from "./tools/admin";
+export { APPS_TOOLS } from "./tools/apps";
 
 // Client-side (kept from scaffold)
 export { parseSSEStream } from "./stream-parser";

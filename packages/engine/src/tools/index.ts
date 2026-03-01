@@ -3,17 +3,19 @@ import { CORE_TOOLS } from "./core";
 import { KNOWLEDGE_TOOLS } from "./knowledge";
 import { COMMUNICATION_TOOLS } from "./communication";
 import { ADMIN_TOOLS } from "./admin";
+import { APPS_TOOLS } from "./apps";
 
 export { CORE_TOOLS } from "./core";
 export { KNOWLEDGE_TOOLS } from "./knowledge";
 export { COMMUNICATION_TOOLS } from "./communication";
 export { ADMIN_TOOLS } from "./admin";
+export { APPS_TOOLS } from "./apps";
 
 /**
  * Three-tier tool loading:
  * - Core (always loaded): goals, tasks, memory, discovery (~8 tools)
- * - Pack (loaded by default, can be trimmed for voice): knowledge, comms, admin (~8 tools)
- * - Extended (via discover_tools): dynamic tools from DB (future)
+ * - Pack (loaded by default): knowledge, comms, admin, apps (~20 tools)
+ * - Extended (via discover_tools + build_tool): dynamic tools from DB
  */
 export function getAllTools(): ToolDefinition[] {
   return [
@@ -21,6 +23,7 @@ export function getAllTools(): ToolDefinition[] {
     ...KNOWLEDGE_TOOLS,
     ...COMMUNICATION_TOOLS,
     ...ADMIN_TOOLS,
+    ...APPS_TOOLS,
   ];
 }
 
