@@ -24,8 +24,8 @@ export function MessageList({ messages, isStreaming, className }: MessageListPro
     return (
       <div className={cn("flex items-center justify-center h-full", className)}>
         <div className="text-center space-y-2 text-muted-foreground">
-          <p className="text-lg font-medium">ExoSkull v2</p>
-          <p className="text-sm">Claude Code wrapper — napisz cokolwiek.</p>
+          <p className="text-lg font-medium">ExoSkull</p>
+          <p className="text-sm">Twój drugi mózg. Napisz cokolwiek.</p>
         </div>
       </div>
     );
