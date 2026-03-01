@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import type { UseChatEngineReturn } from "@exoskull/engine";
 import { MessageList } from "./MessageList";
 import { InputBar } from "./InputBar";
+import { VoiceMode } from "./VoiceMode";
 import { cn } from "../common/utils";
 
 interface ChatShellProps {
@@ -11,11 +13,21 @@ interface ChatShellProps {
 }
 
 /**
- * ChatShell — complete chat interface.
- * MessageList (scrollable) + InputBar (bottom).
- * Used in both web and desktop apps.
+ * ChatShell — complete chat interface with voice mode.
+ * MessageList (scrollable) + InputBar (bottom) + VoiceMode (overlay).
  */
 export function ChatShell({ engine, className }: ChatShellProps) {
+  const [voiceModeOpen, setVoiceModeOpen] = useState(false);
+
+  // Get last assistant message for TTS
+  const lastAssistantMsg = [...engine.messages]
+    .reverse()
+    .find((m) => m.role === "assistant");
+
+  const handleVoiceClose = useCallback(() => {
+    setVoiceModeOpen(false);
+  }, []);
+
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Error banner */}
@@ -40,8 +52,19 @@ export function ChatShell({ engine, className }: ChatShellProps) {
           onSend={(msg) => engine.sendMessage(msg)}
           isStreaming={engine.isStreaming}
           onCancel={engine.cancelStream}
+          onVoiceMode={() => setVoiceModeOpen(true)}
         />
       </div>
+
+      {/* Voice mode overlay */}
+      {voiceModeOpen && (
+        <VoiceMode
+          onSend={(msg) => engine.sendMessage(msg)}
+          isStreaming={engine.isStreaming}
+          lastAssistantMessage={lastAssistantMsg?.content}
+          onClose={handleVoiceClose}
+        />
+      )}
     </div>
   );
 }

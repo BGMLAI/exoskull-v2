@@ -7,6 +7,7 @@ interface InputBarProps {
   onSend: (message: string) => void;
   isStreaming: boolean;
   onCancel?: () => void;
+  onVoiceMode?: () => void;
   placeholder?: string;
   className?: string;
 }
@@ -15,6 +16,7 @@ export function InputBar({
   onSend,
   isStreaming,
   onCancel,
+  onVoiceMode,
   placeholder = "Napisz wiadomosc... (Ctrl+Enter aby wyslac)",
   className,
 }: InputBarProps) {
@@ -38,7 +40,6 @@ export function InputBar({
     if (!input.trim() || isStreaming) return;
     onSend(input.trim());
     setInput("");
-    // Reset height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -46,13 +47,11 @@ export function InputBar({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Ctrl+Enter or Cmd+Enter to send
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         handleSubmit();
         return;
       }
-      // Enter without shift also sends (single line mode)
       if (e.key === "Enter" && !e.shiftKey && input.split("\n").length <= 1) {
         e.preventDefault();
         handleSubmit();
@@ -68,6 +67,25 @@ export function InputBar({
         className,
       )}
     >
+      {/* Voice mode button */}
+      {onVoiceMode && (
+        <button
+          onClick={onVoiceMode}
+          disabled={isStreaming}
+          className={cn(
+            "shrink-0 rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
+            isStreaming && "opacity-30 cursor-not-allowed",
+          )}
+          title="Tryb glosowy"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+        </button>
+      )}
+
       <textarea
         ref={textareaRef}
         value={input}

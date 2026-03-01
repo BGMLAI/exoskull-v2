@@ -2,6 +2,7 @@
 export { MessageList } from "./chat/MessageList";
 export { InputBar } from "./chat/InputBar";
 export { ChatShell } from "./chat/ChatShell";
+export { VoiceMode } from "./chat/VoiceMode";
 
 // Code components
 export { CodeBlock } from "./code/CodeBlock";
