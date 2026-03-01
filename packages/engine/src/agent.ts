@@ -19,16 +19,22 @@ import { buildContext } from "./context-builder";
 import { EventStore } from "./event-store";
 import { getAllTools } from "./tools";
 import { MAX_TOOL_RESULT_LENGTH } from "./tools/types";
+import { analyzeEmotion, detectCrisis } from "./emotion";
+import { runReflexion } from "./reflexion";
 
 // ── Configuration ───────────────────────────────────────────────────────────
+// Subscription-based pricing: no per-token cost optimization needed.
+// Use Sonnet everywhere. Be thorough — more turns = better results.
+
+const MODEL = "claude-sonnet-4-6";
 
 const CONFIGS: Record<string, AgentConfig> = {
-  web_chat:    { maxTurns: 15, timeoutMs: 55_000, model: "claude-sonnet-4-6" },
-  voice:       { maxTurns: 6,  timeoutMs: 40_000, model: "claude-sonnet-4-6" },
-  sms:         { maxTurns: 6,  timeoutMs: 30_000, model: "claude-sonnet-4-6" },
-  telegram:    { maxTurns: 10, timeoutMs: 45_000, model: "claude-sonnet-4-6" },
-  autonomous:  { maxTurns: 8,  timeoutMs: 50_000, model: "claude-sonnet-4-6" },
-  default:     { maxTurns: 10, timeoutMs: 45_000, model: "claude-sonnet-4-6" },
+  web_chat:    { maxTurns: 25, timeoutMs: 120_000, model: MODEL },
+  voice:       { maxTurns: 10, timeoutMs: 60_000,  model: MODEL },
+  sms:         { maxTurns: 10, timeoutMs: 45_000,  model: MODEL },
+  telegram:    { maxTurns: 20, timeoutMs: 90_000,  model: MODEL },
+  autonomous:  { maxTurns: 20, timeoutMs: 120_000, model: MODEL },
+  default:     { maxTurns: 20, timeoutMs: 90_000,  model: MODEL },
 };
 
 function getConfig(channel: string, mode?: string): AgentConfig {
@@ -84,12 +90,24 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
   const config = getConfig(req.channel, req.mode);
   const tools = getAllTools();
 
+  // Phase 0: Emotion + crisis check
+  const emotion = analyzeEmotion(req.userMessage);
+  const crisis = detectCrisis(req.userMessage);
+
   // Phase 1: Context assembly
-  const { systemPrompt, threadMessages, tenant } = await buildContext(
+  const { systemPrompt: basePrompt, threadMessages, tenant } = await buildContext(
     req.tenantId,
     req.sessionId,
     req.channel,
   );
+
+  // Inject emotion context into system prompt
+  let systemPrompt = basePrompt;
+  if (crisis.isCrisis) {
+    systemPrompt += `\n\n## CRISIS DETECTED: ${crisis.type}\nPrioritize user safety. Provide crisis resources. Do NOT use tools except for emergency contacts.`;
+  } else if (emotion.quadrant !== "Q4") {
+    systemPrompt += `\n\n## Emotional Context\nUser mood: ${emotion.label} (${emotion.quadrant}). ${emotion.toneGuide}`;
+  }
 
   // Phase 2: Event store
   const eventStore = new EventStore(req.tenantId, req.sessionId, req.channel);
@@ -241,8 +259,8 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
     clearTimeout(timeoutHandle);
   }
 
-  // Phase 4: Post-process
-  const costCents = (totalIn * 0.3 + totalOut * 1.5) / 100_000; // Sonnet pricing
+  // Phase 4: Post-process (cost tracking is informational — subscription-based)
+  const costCents = (totalIn * 0.3 + totalOut * 1.5) / 100_000;
   const costUsd = costCents / 100;
 
   eventStore.emit("assistant_msg", { content: finalText }, {
@@ -258,7 +276,7 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
 
   const durationMs = Date.now() - startMs;
 
-  return {
+  const response: AgentResponse = {
     text: finalText,
     toolsUsed,
     events: eventStore.getBuffer(),
@@ -266,4 +284,11 @@ export async function runAgent(req: AgentRequest): Promise<AgentResponse> {
     numTurns,
     durationMs,
   };
+
+  // Phase 5: Reflexion (async, non-blocking — subscription = no cost concern)
+  runReflexion(req.tenantId, req.userMessage, response).catch((err) => {
+    console.error("[Agent] Reflexion failed (non-blocking):", err);
+  });
+
+  return response;
 }
