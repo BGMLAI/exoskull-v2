@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@exoskull/ui": ["../../packages/ui/src"],
+      "@exoskull/engine": ["../../packages/engine/src"],
+      "@exoskull/store": ["../../packages/store/src"],
+      "@exoskull/types": ["../../packages/types/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../../packages/*/src/**/*.ts", "../../packages/*/src/**/*.tsx"]
+}
