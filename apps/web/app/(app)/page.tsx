@@ -66,7 +66,7 @@ export default function AppPage() {
             </button>
           </header>
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            <p>Start a conversation — diffs and files will appear here.</p>
+            <p>Zacznij rozmowę — diffy i pliki pojawią się tutaj.</p>
           </div>
         </div>
       )}

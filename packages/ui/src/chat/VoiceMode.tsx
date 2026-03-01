@@ -372,7 +372,10 @@ export function VoiceMode({
   // ── Render ─────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background backdrop-blur-xl">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background"
+      style={{ backgroundColor: 'var(--background, #f5f5f5)' }}
+    >
       {/* Close button */}
       <button
         onClick={() => {
