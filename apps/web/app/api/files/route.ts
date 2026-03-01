@@ -1,4 +1,4 @@
-import { createSupabaseServer } from "../../../../lib/supabase/server";
+import { createSupabaseServer } from "../../../lib/supabase/server";
 import { getOrCreateTenant, listBlobs } from "@exoskull/store";
 
 export async function GET() {
