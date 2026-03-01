@@ -1,8 +1,17 @@
-export default function AppLayout({
+import { redirect } from "next/navigation";
+import { createSupabaseServer } from "../../lib/supabase/server";
+
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // TODO: Add Supabase auth guard here
+  const supabase = await createSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   return <>{children}</>;
 }

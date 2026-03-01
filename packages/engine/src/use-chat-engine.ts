@@ -116,12 +116,12 @@ export function useChatEngine(apiEndpoint = "/api/chat/stream"): UseChatEngineRe
           break;
         }
         case "tool_start": {
-          const tool = event.data as ToolCall;
+          const tool = event.data as unknown as ToolCall;
           setCurrentToolCalls((prev) => [...prev, { ...tool, status: "running" }]);
           break;
         }
         case "tool_end": {
-          const tool = event.data as ToolCall;
+          const tool = event.data as unknown as ToolCall;
           setCurrentToolCalls((prev) =>
             prev.map((t) => (t.id === tool.id ? { ...t, ...tool, status: "done" } : t)),
           );
