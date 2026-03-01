@@ -18,7 +18,7 @@ apps/web/              — Next.js 15 web app
 apps/desktop/          — Tauri v2 desktop app (Phase 4)
 packages/types/        — All shared TypeScript interfaces (~300 LOC)
 packages/store/        — Supabase CRUD for 8 tables (~700 LOC)
-packages/engine/       — Agent brain: ReAct loop, 28 tools, gateway, heartbeat (~5500 LOC)
+packages/engine/       — Agent brain: ReAct loop, 31 tools, gateway, heartbeat, resilience (~6500 LOC)
 packages/ui/           — Shared React components (chat, code)
 services/vps-executor/ — VPS code execution sandbox
 supabase/migrations/   — 8 tables: tenants, events, memory, goals, tools, queue, connections, blobs
@@ -61,15 +61,16 @@ cd apps/web && npx next build
 5. **SOUL + MEMORY** — 2 pre-computed text blobs replace 15 DB queries
 6. **ReAct loop** — Reason → Act → Observe, with parallel tool execution
 7. **Single queue** — one CRON route, priority-based processing
-8. **~23k LOC target** — currently ~6.9k LOC (Phase 1-3)
+8. **~23k LOC target** — currently ~8.3k LOC (Phase 1-4)
 
-## Agent Tools (28 total: 8 core + 20 pack)
+## Agent Tools (31 total: 8 core + 23 pack)
 
 **Core (8):** define_goal, check_goals, log_goal_progress, add_task, list_tasks, complete_task, search_brain, remember
 **Knowledge (2):** search_web, import_url
 **Communication (2):** send_sms, send_email
 **Admin (6):** request_autonomy, list_integrations, discover_tools, plan_action, log_data, get_data
 **Apps (6):** create_app_spec, scaffold_app, write_code, run_tests, deploy_app, build_tool
+**Voice (3):** make_call, get_call_status, get_call_summary
 **Dynamic:** +N via build_tool (self-extending agent)
 
 ## Stack
@@ -88,4 +89,4 @@ cd apps/web && npx next build
 - [x] Phase 1: Goal → Strategy → Tasks (closed loop) — DB, store, engine, auth, SSE
 - [x] Phase 2: Memory + Tools + App Builder — SOUL/MEMORY, emotion, reflexion, 28 tools, BMAD, self-extending
 - [x] Phase 3: Heartbeat + Multi-Channel — queue worker, Telegram webhook, lane queue, vector search
-- [ ] Phase 4: Polish + Desktop + Outbound Calling + Web UI (goals page, settings)
+- [x] Phase 4: Web UI + Voice + Resilience — sidebar, goals tree, settings, onboarding, 3 voice tools, crash recovery, anti-hallucination, Gemini fallback
